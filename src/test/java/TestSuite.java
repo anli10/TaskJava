@@ -31,6 +31,16 @@ public class TestSuite extends TestBase{
         return null;
     }
 
+    public String extractDigits(String src) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < src.length(); i++) {
+            char c = src.charAt(i);
+            if (Character.isDigit(c)) {
+                builder.append(c);
+            }
+        }
+        return builder.toString();
+    }
 //    Register Test:
 //1. Navigate My Account -> Register
 //2. Fill the form with your information (email address, name etc)
@@ -46,10 +56,10 @@ public class TestSuite extends TestBase{
         registerPage.fillInformation("Beatrice","Ghiuta","ghiutaanamaria@yahoo.com","0730341580","Password1","Password1");
         registerPage.submitForm();
         EditInformation editInformation=registerPage.goToEditInformation();
-        Assert.assertEquals("Beatrice",editInformation.getFirstName().getAttribute("value"));
-        Assert.assertEquals("Ghiuta",editInformation.getLastName().getAttribute("value"));
-        Assert.assertEquals("ghiutaanamaria@yahoo.com",editInformation.getEmail().getAttribute("value"));
-        Assert.assertEquals("0730341580",editInformation.getTelephone().getAttribute("value"));
+        Assert.assertEquals(read("firstname"),editInformation.getFirstName().getAttribute("value"));
+        Assert.assertEquals(read("lastname"),editInformation.getLastName().getAttribute("value"));
+        Assert.assertEquals(read("email"),editInformation.getEmail().getAttribute("value"));
+        Assert.assertEquals(read("telephone"),editInformation.getTelephone().getAttribute("value"));
         homePage.logOut();
     }
 //    Login Test:
@@ -78,15 +88,20 @@ public class TestSuite extends TestBase{
     @Test
     public void addAddress() throws SQLException {
 
-        Connection connection = DriverManager.getConnection("jdbc:mariadb://192.168.164.15:3306/bitnami_opencart", "root", null);
-        Statement stmt = connection.createStatement();
-        stmt.executeUpdate("insert into oc_address (customer_id, firstname, lastname, company, address_1, address_2, city, postcode, country_id, zone_id, custom_field, dummy) values ((select customer_id from oc_customer where email=\"" + read("email") + "\"), \"Beatrice\", \"Ghiuta\", \"Endava\", \"adresa1\", \"adresa1\", \"Bucharest\", \"123\", 123,123,0, 0);");
-        stmt.close();
-        connection.close();
         LogInPage logInPage = homePage.logIn();
         logInPage.fillCredentials(read("email"),read("password"));
         AddressBook addressBook=logInPage.goToAddressPage();
-        Assert.assertTrue(addressBook.check(read("email")));
+        int n=addressBook.getAddressBook().size();
+
+        Connection connection = DriverManager.getConnection("jdbc:mariadb://192.168.164.15:3306/bitnami_opencart", "root", "root");
+        Statement stmt = connection.createStatement();
+        stmt.executeUpdate("insert into oc_address (customer_id, firstname, lastname, company, address_1, address_2, city, postcode, country_id, zone_id, custom_field) values ((select customer_id from oc_customer where email=\"" + read("email") + "\"), \"Beatrice\", \"Ghiuta\", \"Endava\", \"adresa1\", \"adresa1\", \"Bucharest\", \"123\", 123,123,0);");
+        stmt.close();
+        connection.close();
+
+        logInPage.goToAddressPage();
+        int m=addressBook.getAddressBook().size();
+        Assert.assertTrue(n<m);
         homePage.logOut();
     }
 //    Product selection:
@@ -106,14 +121,14 @@ public class TestSuite extends TestBase{
         ProductPage productPage=homePage.selectProduct();
         productPage.addToCart();
 
-        String initial=productPage.getQuantity();
-        Connection connection = DriverManager.getConnection("jdbc:mariadb://192.168.164.15:3306/bitnami_opencart", "root", null);
+        String initial=extractDigits(productPage.getQuantity());
+        Connection connection = DriverManager.getConnection("jdbc:mariadb://192.168.164.15:3306/bitnami_opencart", "root", "root");
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("update oc_cart set quantity=quantity+1 ");
         stmt.close();
         connection.close();
-        String after=productPage.getQuantity();
-        Assert.assertTrue(initial.compareTo(after)>0);
+        String after=extractDigits(productPage.getQuantity());
+        Assert.assertTrue(Integer.parseInt(initial) < Integer.parseInt(after));
         homePage.logOut();
     }
 

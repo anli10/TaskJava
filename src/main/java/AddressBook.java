@@ -18,12 +18,12 @@ public class AddressBook {
         return addressInformation;
     }
 
+    public List<WebElement> getAddressBook() {
+        return addressBook;
+    }
+
     public AddressBook(WebDriver webDriver){
         this.webDriver=webDriver;
     }
-    public boolean check(String em){
-        int n=addressBook.size();
-        if(addressBook.get(n-1).getText().contains(em))return true;
-        return false;
-    }
+
 }
